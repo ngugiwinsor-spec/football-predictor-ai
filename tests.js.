@@ -1,0 +1,52 @@
+
+const assert = require("node:assert/strict");
+const {
+  poissonProbabilities,
+  predictMatch
+} = require("./engine.js");
+
+// Test 1: Poisson probabilities sum to 1.
+const distribution = poissonProbabilities(1.5);
+const total = distribution.reduce((sum, p) => sum + p, 0);
+
+assert.ok(Math.abs(total - 1) < 1e-10);
+console.log("PASS: Goal probabilities sum to 1");
+
+// Test 2: All three match-result probabilities sum to 100%.
+const result = predictMatch(1.6, 1.0);
+const markets = result.markets;
+
+const outcomeTotal =
+  markets.homeWin + markets.draw + markets.awayWin;
+
+assert.ok(Math.abs(outcomeTotal - 100) <= 0.02);
+console.log("PASS: 1X2 probabilities sum to 100%");
+
+// Test 3: Over/under probabilities complement each other.
+assert.ok(
+  Math.abs(markets.over25 + markets.under25 - 100) < 0.02
+);
+console.log("PASS: Over/under probabilities are consistent");
+
+// Test 4: Both-teams-to-score probabilities complement each other.
+assert.ok(
+  Math.abs(markets.bttsYes + markets.bttsNo - 100) < 0.02
+);
+console.log("PASS: BTTS probabilities are consistent");
+
+// Test 5: Correct-score predictions are ranked highest first.
+const scores = result.mostLikelyScores;
+
+assert.equal(scores.length, 5);
+
+for (let i = 1; i < scores.length; i++) {
+  assert.ok(scores[i - 1].probability >= scores[i].probability);
+}
+console.log("PASS: Correct scores are ranked correctly");
+
+// Test 6: Invalid expected-goal inputs must be rejected.
+assert.throws(() => predictMatch(-1, 1));
+assert.throws(() => predictMatch(1, NaN));
+console.log("PASS: Invalid inputs are rejected");
+
+console.log("\nAll six test groups passed.");
